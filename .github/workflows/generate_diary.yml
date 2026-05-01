@@ -1,0 +1,54 @@
+name: Generate diary entry
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run daily; script enforces "every couple days"
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: generate-diary
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate (may skip if too recent)
+        env:
+          MODEL_NAME: distilgpt2
+          # Update this to your Pages URL if different
+          SITE_LINK: https://eugeniedt.github.io/syntheticdiary
+          MIN_DAYS_BETWEEN_POSTS: "2"
+        run: |
+          python gen_entry.py
+
+      - name: Commit changes (if any)
+        run: |
+          if [[ -z "$(git status --porcelain)" ]]; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: generate diary entry"
+          git push
+

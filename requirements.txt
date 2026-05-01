@@ -1,0 +1,6 @@
+transformers
+torch
+python-slugify
+feedgen
+PyYAML
+Markdown
