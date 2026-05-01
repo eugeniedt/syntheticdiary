@@ -11,6 +11,7 @@ import re
 from typing import Optional
 
 import markdown as md
+from urllib.parse import urlparse
 
 # --- Config ---
 SITE_DIR = Path(__file__).parent
@@ -64,9 +65,20 @@ def _render_markdown_to_html(markdown_text: str) -> str:
         output_format="html5",
     )
 
+def _site_prefix() -> str:
+    """
+    For GitHub Pages project sites, SITE_LINK is often like:
+      https://username.github.io/repo
+    In that case, internal links must be prefixed with /repo, not /.
+    """
+    p = urlparse(SITE_LINK)
+    prefix = p.path.rstrip("/")
+    return "" if prefix == "/" else prefix
+
 def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
     full_title = SITE_TITLE if (not title or title == SITE_TITLE) else f"{SITE_TITLE} — {title}"
     canonical_url = f"{SITE_LINK}{canonical_path}"
+    prefix = _site_prefix()
     return f"""<!doctype html>
 <html lang="en">
   <head>
@@ -75,8 +87,8 @@ def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
     <title>{_html_escape_title(full_title)}</title>
     <meta name="description" content="{_html_escape_title(SITE_DESC)}" />
     <link rel="canonical" href="{canonical_url}" />
-    <link rel="stylesheet" href="/assets/style.css" />
-    <link rel="alternate" type="application/rss+xml" title="{_html_escape_title(SITE_TITLE)}" href="/feed.xml" />
+    <link rel="stylesheet" href="{prefix}/assets/style.css" />
+    <link rel="alternate" type="application/rss+xml" title="{_html_escape_title(SITE_TITLE)}" href="{prefix}/feed.xml" />
     <script>
       (function() {{
         try {{
@@ -89,9 +101,9 @@ def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
   <body>
     <header class="site-header">
       <div class="container header-row">
-        <a class="brand" href="/">{_html_escape_title(SITE_TITLE)}</a>
+        <a class="brand" href="{prefix}/">{_html_escape_title(SITE_TITLE)}</a>
         <nav class="nav">
-          <a href="/feed.xml">RSS</a>
+          <a href="{prefix}/feed.xml">RSS</a>
           <button class="theme-toggle" type="button" id="themeToggle" aria-label="Toggle theme">Theme</button>
         </nav>
       </div>
@@ -265,6 +277,7 @@ def latest_diary_date(posts: list[tuple[Path, dict]]) -> Optional[dt.datetime]:
 
 def build_static_pages():
     ensure_assets()
+    prefix = _site_prefix()
 
     # Render each markdown file in posts/ to a corresponding HTML file in posts/
     posts = load_posts_meta()
@@ -289,7 +302,7 @@ def build_static_pages():
         html_name = p.name.replace(".md", ".html")
         post_list_html += (
             f"<li><div class='post-meta'>{_html_escape_title(date_s)}</div>"
-            f"<a href='/posts/{html_name}'>{_html_escape_title(title)}</a></li>"
+            f"<a href='{prefix}/posts/{html_name}'>{_html_escape_title(title)}</a></li>"
         )
     post_list_html += "</ul>"
 
