@@ -183,6 +183,10 @@ a:hover{text-decoration:underline}
 }
 .card{border:1px solid var(--border);background:var(--card);border-radius:14px;padding:16px}
 .post-meta{color:var(--muted);font-family:var(--mono);font-size:.9rem}
+.post-feed{display:flex;flex-direction:column;gap:18px}
+.post-entry h3{margin-top:0;margin-bottom:4px}
+.post-entry .post-meta{margin-bottom:12px}
+.post-entry > :last-child{margin-bottom:0}
 .post-list{display:flex;flex-direction:column;gap:12px;padding:0;list-style:none}
 .post-list li{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--card)}
 .site-footer{border-top:1px solid var(--border);color:var(--muted);padding-top:16px}
@@ -294,26 +298,30 @@ def build_static_pages():
 
     diary_items = [(p, m) for (p, m) in posts_sorted if _is_diary_post(m, p)]
 
-    post_list_html = "<ul class='post-list'>"
+    post_feed_html = "<div class='post-feed'>"
     for p, meta in diary_items[:30]:
         title = str(meta.get("title") or p.stem)
         date_s = str(meta.get("date") or "")
-        html_name = p.name.replace(".md", ".html")
-        post_list_html += (
-            f"<li><div class='post-meta'>{_html_escape_title(date_s)}</div>"
-            f"<a href='posts/{html_name}'>{_html_escape_title(title)}</a></li>"
+        _, body = _parse_front_matter(p)
+        content_html = _render_markdown_to_html(body)
+        post_feed_html += (
+            f"<article class='card post-entry'>"
+            f"<h3>{_html_escape_title(title)}</h3>"
+            f"<div class='post-meta'>{_html_escape_title(date_s)}</div>"
+            f"{content_html}"
+            f"</article>"
         )
-    post_list_html += "</ul>"
+    post_feed_html += "</div>"
 
     if home_md:
         home_title = str(home_meta.get("title") or SITE_TITLE)
         home_html = _render_markdown_to_html(home_body)
         index_body = (
             f"<article class='card'>{home_html}</article>"
-            f"<h2>Recent entries</h2>{post_list_html}"
+            f"<h2>Latest diary entries</h2>{post_feed_html}"
         )
     else:
-        index_body = f"<h1>{_html_escape_title(SITE_TITLE)}</h1><p>{_html_escape_title(SITE_DESC)}</p><h2>Recent entries</h2>{post_list_html}"
+        index_body = f"<h1>{_html_escape_title(SITE_TITLE)}</h1><p>{_html_escape_title(SITE_DESC)}</p><h2>Latest diary entries</h2>{post_feed_html}"
 
     (SITE_DIR / "index.html").write_text(
         _page_shell(title=SITE_TITLE, body_html=index_body, canonical_path="/"),
