@@ -7,7 +7,7 @@
   --link:#2563eb;
   --border:#e5e7eb;
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-  --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  --sans: "Times New Roman", Times, serif;
 }
 :root[data-theme="dark"]{
   --bg:#0b1020;
@@ -20,7 +20,6 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme]){--bg:#0b1020;--fg:#e5e7eb;--muted:#9ca3af;--card:#0f172a;--link:#60a5fa;--border:#1f2937;}
 }
-*{box-sizing:border-box}
 html,body{height:100%}
 body{
   margin:0;
@@ -44,14 +43,14 @@ a:hover{text-decoration:underline}
   border-radius:10px;
   cursor:pointer;
 }
-.card{border:1px solid var(--border);background:var(--card);border-radius:14px;padding:16px}
+.card{padding:16px}
 .post-meta{color:var(--muted);font-family:var(--mono);font-size:.9rem}
 .post-feed{display:flex;flex-direction:column;gap:18px}
 .post-entry h3{margin-top:0;margin-bottom:4px}
 .post-entry .post-meta{margin-bottom:12px}
 .post-entry > :last-child{margin-bottom:0}
 .post-list{display:flex;flex-direction:column;gap:12px;padding:0;list-style:none}
-.post-list li{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--card)}
+.post-list li{padding:14px}
 .site-footer{border-top:1px solid var(--border);color:var(--muted);padding-top:16px}
 code,pre{font-family:var(--mono)}
 pre{overflow:auto;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--card)}
