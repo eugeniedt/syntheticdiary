@@ -12,5 +12,5 @@ This repo hosts a fully static website on GitHub Pages.
 ### TO DO 
 - rss without html? 
 - retrain the model and include into gen_entry 
-- layout 
+
 

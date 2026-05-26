@@ -89,14 +89,6 @@ def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
     <link rel="canonical" href="{canonical_url}" />
     <link rel="stylesheet" href="assets/style.css" />
     <link rel="alternate" type="application/rss+xml" title="{_html_escape_title(SITE_TITLE)}" href="feed.xml" />
-    <script>
-      (function() {{
-        try {{
-          var t = localStorage.getItem('theme');
-          if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
-        }} catch (e) {{}}
-      }})();
-    </script>
   </head>
   <body>
     <header class="site-header">
@@ -104,7 +96,6 @@ def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
         <a class="brand" href="./">{_html_escape_title(SITE_TITLE)}</a>
         <nav class="nav">
           <a href="feed.xml">RSS</a>
-          <button class="theme-toggle" type="button" id="themeToggle" aria-label="Toggle theme">Theme</button>
         </nav>
       </div>
     </header>
@@ -114,18 +105,6 @@ def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
     <footer class="container site-footer">
       <p>Generated content. Static site hosted on GitHub Pages.</p>
     </footer>
-    <script>
-      (function() {{
-        var btn = document.getElementById('themeToggle');
-        if (!btn) return;
-        btn.addEventListener('click', function() {{
-          var cur = document.documentElement.dataset.theme;
-          var next = (cur === 'dark') ? 'light' : 'dark';
-          document.documentElement.dataset.theme = next;
-          try {{ localStorage.setItem('theme', next); }} catch (e) {{}}
-        }});
-      }})();
-    </script>
   </body>
 </html>
 """
@@ -135,7 +114,7 @@ def ensure_assets():
     if CSS_FILE.exists():
         return
     CSS_FILE.write_text(
-        """/* Minimal, fast static styling with light/dark theme */
+        """/* Minimal, fast static styling */
 :root{
   --bg:#ffffff;
   --fg:#111827;
@@ -145,17 +124,6 @@ def ensure_assets():
   --border:#e5e7eb;
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
   --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-}
-:root[data-theme="dark"]{
-  --bg:#0b1020;
-  --fg:#e5e7eb;
-  --muted:#9ca3af;
-  --card:#0f172a;
-  --link:#60a5fa;
-  --border:#1f2937;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme]){--bg:#0b1020;--fg:#e5e7eb;--muted:#9ca3af;--card:#0f172a;--link:#60a5fa;--border:#1f2937;}
 }
 *{box-sizing:border-box}
 html,body{height:100%}
@@ -173,14 +141,6 @@ a:hover{text-decoration:underline}
 .header-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:16px;padding-bottom:16px}
 .brand{font-weight:700;letter-spacing:.2px}
 .nav{display:flex;gap:14px;align-items:center}
-.theme-toggle{
-  border:1px solid var(--border);
-  background:var(--card);
-  color:var(--fg);
-  padding:6px 10px;
-  border-radius:10px;
-  cursor:pointer;
-}
 .card{border:1px solid var(--border);background:var(--card);border-radius:14px;padding:16px}
 .post-meta{color:var(--muted);font-family:var(--mono);font-size:.9rem}
 .post-feed{display:flex;flex-direction:column;gap:18px}
