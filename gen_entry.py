@@ -1,6 +1,5 @@
 import os
 import time
-import random
 import datetime as dt
 from pathlib import Path
 from slugify import slugify
@@ -9,21 +8,17 @@ from feedgen.feed import FeedGenerator
 import yaml
 import re
 from typing import Optional
-
 import markdown as md
-from urllib.parse import urlparse
 
 # --- Config ---
 SITE_DIR = Path(__file__).parent
 POSTS_DIR = SITE_DIR / "posts"
 FEED_FILE = SITE_DIR / "feed.xml"
 ASSETS_DIR = SITE_DIR / "assets"
-CSS_FILE = ASSETS_DIR / "style.css"
-SITE_TITLE = os.getenv("SITE_TITLE", "AI Diary")
+SITE_TITLE = os.getenv("SITE_TITLE", "My Synthetic Diary")
 SITE_LINK = os.getenv("SITE_LINK", "https://eugeniedt.github.io/syntheticdiary")
 SITE_DESC = os.getenv("SITE_DESC", "My Synthetic Diary")
 AUTHOR_NAME = os.getenv("AUTHOR_NAME", "Us")
-TIMEZONE = "UTC"
 MODEL_NAME = os.getenv("MODEL_NAME", "distilgpt2")
 MAX_TOKENS = 220
 TEMPERATURE = 0.9
@@ -65,15 +60,9 @@ def _render_markdown_to_html(markdown_text: str) -> str:
         output_format="html5",
     )
 
-def _site_prefix() -> str:
-    """
-    For GitHub Pages project sites, SITE_LINK is often like:
-      https://username.github.io/repo
-    In that case, internal links must be prefixed with /repo, not /.
-    """
-    p = urlparse(SITE_LINK)
-    prefix = p.path.rstrip("/")
-    return "" if prefix == "/" else prefix
+def _is_special_page(meta: dict) -> bool:
+    permalink = str(meta.get("permalink", "")).strip()
+    return permalink in ("/", "/404.html")
 
 def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
     full_title = SITE_TITLE if (not title or title == SITE_TITLE) else f"{SITE_TITLE} — {title}"
@@ -111,50 +100,6 @@ def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
 
 def ensure_assets():
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
-    if CSS_FILE.exists():
-        return
-    CSS_FILE.write_text(
-        """/* Minimal, fast static styling */
-:root{
-  --bg:#ffffff;
-  --fg:#111827;
-  --muted:#6b7280;
-  --card:#f3f4f6;
-  --link:#2563eb;
-  --border:#e5e7eb;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-  --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-}
-*{box-sizing:border-box}
-html,body{height:100%}
-body{
-  margin:0;
-  font-family:var(--sans);
-  background:var(--bg);
-  color:var(--fg);
-  line-height:1.6;
-}
-a{color:var(--link);text-decoration:none}
-a:hover{text-decoration:underline}
-.container{max-width:860px;margin:0 auto;padding:24px}
-.site-header{border-bottom:1px solid var(--border);background:rgba(0,0,0,0)}
-.header-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-top:16px;padding-bottom:16px}
-.brand{font-weight:700;letter-spacing:.2px}
-.nav{display:flex;gap:14px;align-items:center}
-.card{border:1px solid var(--border);background:var(--card);border-radius:14px;padding:16px}
-.post-meta{color:var(--muted);font-family:var(--mono);font-size:.9rem}
-.post-feed{display:flex;flex-direction:column;gap:18px}
-.post-entry h3{margin-top:0;margin-bottom:4px}
-.post-entry .post-meta{margin-bottom:12px}
-.post-entry > :last-child{margin-bottom:0}
-.post-list{display:flex;flex-direction:column;gap:12px;padding:0;list-style:none}
-.post-list li{padding:14px;border:1px solid var(--border);border-radius:14px;background:var(--card)}
-.site-footer{border-top:1px solid var(--border);color:var(--muted);padding-top:16px}
-code,pre{font-family:var(--mono)}
-pre{overflow:auto;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--card)}
-""",
-        encoding="utf-8",
-    )
 
 def prompt_for_today():
     today = dt.datetime.now(dt.timezone.utc).strftime("%A, %B %d, %Y")
@@ -286,14 +231,10 @@ def build_static_pages():
     post_feed_html += "</div>"
 
     if home_md:
-        home_title = str(home_meta.get("title") or SITE_TITLE)
         home_html = _render_markdown_to_html(home_body)
-        index_body = (
-            f"<article class='card'>{home_html}</article>"
-            f"<h2>Latest diary entries</h2>{post_feed_html}"
-        )
+        index_body = f"{home_html}<h2>Latest Entries:</h2>{post_feed_html}"
     else:
-        index_body = f"<h1>{_html_escape_title(SITE_TITLE)}</h1><p>{_html_escape_title(SITE_DESC)}</p><h2>Latest diary entries</h2>{post_feed_html}"
+        index_body = f"<h1>{_html_escape_title(SITE_TITLE)}</h1><p>{_html_escape_title(SITE_DESC)}</p><h2>Latest Entries:</h2>{post_feed_html}"
 
     (SITE_DIR / "index.html").write_text(
         _page_shell(title=SITE_TITLE, body_html=index_body, canonical_path="/"),
@@ -313,6 +254,8 @@ def build_static_pages():
 
     # Individual post pages in posts/
     for p, meta in posts:
+        if _is_special_page(meta):
+            continue
         _, body = _parse_front_matter(p)
         title = str(meta.get("title") or p.stem)
         date_s = str(meta.get("date") or "")

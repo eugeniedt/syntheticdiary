@@ -34,6 +34,8 @@ jobs:
       - name: Generate (may skip if too recent)
         env:
           MODEL_NAME: distilgpt2
+          SITE_TITLE: My Synthetic Diary
+          SITE_DESC: My Synthetic Diary
           # Update this to your Pages URL if different
           SITE_LINK: https://eugeniedt.github.io/syntheticdiary
           MIN_DAYS_BETWEEN_POSTS: "2"
