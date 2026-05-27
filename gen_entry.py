@@ -1,6 +1,7 @@
 import os
 import time
 import datetime as dt
+import argparse
 from pathlib import Path
 from slugify import slugify
 from transformers import AutoTokenizer, AutoModelForCausalLM, set_seed
@@ -307,11 +308,48 @@ def update_rss():
     fg.rss_str(pretty=True)
     fg.rss_file(str(FEED_FILE))
 
+def _parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(description="Generate diary posts and rebuild static pages/RSS.")
+    p.add_argument(
+        "--force",
+        "--manual",
+        action="store_true",
+        help="Force-generate a new diary entry even if the last entry is too recent.",
+    )
+    p.add_argument(
+        "--date",
+        type=str,
+        default=None,
+        help="Optional UTC date for the entry in YYYY-MM-DD (default: now).",
+    )
+    p.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Optional RNG seed override (default: SEED env/config).",
+    )
+    return p.parse_args()
+
+def _utc_dt_for_args(args: argparse.Namespace) -> dt.datetime:
+    if not args.date:
+        return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+    try:
+        d = dt.date.fromisoformat(args.date)
+    except Exception as e:
+        raise SystemExit(f"Invalid --date {args.date!r}. Expected YYYY-MM-DD.") from e
+    return dt.datetime(d.year, d.month, d.day, tzinfo=dt.timezone.utc).replace(microsecond=0)
+
 def main():
+    args = _parse_args()
+
+    if args.seed is not None:
+        global SEED
+        SEED = int(args.seed)
+
     posts = load_posts_meta()
     last_dt = latest_diary_date(posts)
-    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
-    if last_dt is not None:
+    now = _utc_dt_for_args(args)
+    if (not args.force) and (last_dt is not None):
         delta_days = (now - last_dt).total_seconds() / (24 * 3600)
         if delta_days < MIN_DAYS_BETWEEN_POSTS:
             # Still rebuild static pages/feed to keep consistent, but skip generation.
@@ -320,7 +358,6 @@ def main():
             print(f"Skipped generation (last entry {delta_days:.2f} days ago).")
             return
 
-    now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     title = f"Diary — {now.strftime('%Y-%m-%d')}"
     text = generate_text()
     text = basic_clean(text)
