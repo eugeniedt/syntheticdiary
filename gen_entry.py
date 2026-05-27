@@ -254,25 +254,8 @@ def build_static_pages():
             break
 
     # Individual post pages in posts/
-    for p, meta in posts:
-        if _is_special_page(meta):
-            continue
-        _, body = _parse_front_matter(p)
-        title = str(meta.get("title") or p.stem)
-        date_s = str(meta.get("date") or "")
-        content_html = _render_markdown_to_html(body)
-        post_body = (
-            f"<article class='card'>"
-            f"<h1>{_html_escape_title(title)}</h1>"
-            f"<div class='post-meta'>{_html_escape_title(date_s)}</div>"
-            f"{content_html}"
-            f"</article>"
-        )
-        out = POSTS_DIR / p.name.replace(".md", ".html")
-        out.write_text(
-            _page_shell(title=title, body_html=post_body, canonical_path=f"/posts/{out.name}"),
-            encoding="utf-8",
-        )
+    # Intentionally do not generate per-post HTML pages.
+    # The site is meant to be browsable via the homepage feed and via RSS.
 
 def update_rss():
     fg = FeedGenerator()
@@ -292,7 +275,7 @@ def update_rss():
             continue
         fe = fg.add_entry()
         title = meta.get("title", p.stem)
-        link = f"{SITE_LINK}/posts/{p.name.replace('.md', '.html')}"
+        link = f"{SITE_LINK}/posts/{p.name}"
         fe.title(title)
         fe.link(href=link)
         fe.id(link)
