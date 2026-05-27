@@ -262,11 +262,23 @@ def build_static_pages():
     for p, meta in diary_items[:30]:
         title = str(meta.get("title") or p.stem)
         date_s = str(meta.get("date") or "")
+        # On the index page, show a human-friendly date title like "May, 17th, 2026".
+        display_title = title
+        try:
+            d = dt.datetime.fromisoformat(date_s)
+            day = d.day
+            if 11 <= (day % 100) <= 13:
+                suffix = "th"
+            else:
+                suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+            display_title = f"{d.strftime('%B')}, {day}{suffix}, {d.year}"
+        except Exception:
+            pass
         _, body = _parse_front_matter(p)
         content_html = _render_markdown_to_html(body)
         post_feed_html += (
             f"<article class='card post-entry'>"
-            f"<h3>{_html_escape_title(title)}</h3>"
+            f"<h3>{_html_escape_title(display_title)}</h3>"
             f"<div class='post-meta'>{_html_escape_title(date_s)}</div>"
             f"{content_html}"
             f"</article>"
