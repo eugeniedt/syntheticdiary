@@ -24,5 +24,5 @@ package-lock.json
 
 # Local training artifacts
 .venv/
-training/data/
+# training/data/
 training/out/
