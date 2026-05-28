@@ -20,8 +20,13 @@ This repo hosts a fully static website on GitHub Pages.
   - `python gen_entry.py --force --date 2026-05-27`
   - `python gen_entry.py --force --seed 12345`
 
+### Model
+
+Generation uses the private Hugging Face model `eugenieee/synthdiary` (see `MODEL_NAME` in `gen_entry.py`).
+
+For GitHub Actions, add a repository secret **`HF_TOKEN`** (read access to that model) under Settings → Secrets and variables → Actions.
+
 ### TO DO 
 - rss without html? 
-- retrain the model and include into gen_entry 
 
 

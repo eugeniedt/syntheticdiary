@@ -33,7 +33,8 @@ jobs:
 
       - name: Generate (may skip if too recent)
         env:
-          MODEL_NAME: distilgpt2
+          MODEL_NAME: eugenieee/synthdiary
+          HF_TOKEN: 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
           SITE_TITLE: My Synthetic Diary
           SITE_DESC: My Synthetic Diary
           # Update this to your Pages URL if different

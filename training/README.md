@@ -123,7 +123,8 @@ If you hit OOM (out of memory):
 Example:
 
 ```powershell
-$env:MODEL_NAME="C:\Users\AK128613\syntheticdiary\training\out\distilgpt2-daily"
+$env:MODEL_NAME="eugenieee/synthdiary"
+$env:HF_TOKEN="hf_..."  # required if the Hub repo is private
 python .\gen_entry.py --force
 ```
 

@@ -2,7 +2,7 @@ import os
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-MODEL_NAME = os.getenv("MODEL_NAME", r".\training\out\distilgpt2-daily-gpu3")
+MODEL_NAME = os.getenv("MODEL_NAME", "eugenieee/synthdiary")
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
