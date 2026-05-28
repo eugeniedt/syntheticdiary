@@ -1,0 +1,18 @@
+{
+  "input_root": "C:\\Users\\AK128613\\Documents\\Me\\Personal\\Daily",
+  "scanned_md_files": 479,
+  "included_tagged_files": 116,
+  "excluded_files": 363,
+  "kept_files": 116,
+  "train_files": 109,
+  "valid_files": 7,
+  "tags": [
+    "#training_e",
+    "#training_d"
+  ],
+  "valid_fraction": 0.05,
+  "strip_frontmatter": false,
+  "train_txt": "training\\data\\train.txt",
+  "valid_txt": "training\\data\\valid.txt",
+  "manifest_jsonl": "training\\data\\manifest.jsonl"
+}
