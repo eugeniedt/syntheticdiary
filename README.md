@@ -27,6 +27,8 @@ Generation uses the private Hugging Face model `eugenieee/synthdiary` (see `MODE
 For GitHub Actions, add a repository secret **`HF_TOKEN`** (read access to that model) under Settings → Secrets and variables → Actions.
 
 ### TO DO 
-- rss without html? 
+- clean the file structure and all
+- every post should keep the prompt, meaning it should start with Today, I
+- varying temp settings
 
 
