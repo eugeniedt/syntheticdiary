@@ -2,12 +2,12 @@ import os
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
-MODEL_NAME = os.getenv("MODEL_NAME", r"C:\Users\AK128613\syntheticdiary\training\out\distilgpt2-daily")
+MODEL_NAME = os.getenv("MODEL_NAME", r".\training\out\distilgpt2-daily-gpu3")
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForCausalLM.from_pretrained(MODEL_NAME)
 
-prompt = "Today was"
+prompt = "Today, I"
 
 inputs = tokenizer(prompt, return_tensors="pt")
 
@@ -16,7 +16,7 @@ with torch.no_grad():
         **inputs,
         max_new_tokens=180,
         do_sample=True,
-        temperature=0.9,
+        temperature=1.5, #0.1 is pretty good actually on plain gpu
         top_p=0.95,
         repetition_penalty=1.08,
         no_repeat_ngram_size=3,

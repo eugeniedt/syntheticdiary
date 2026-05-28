@@ -1,28 +1,44 @@
-# Ignore the contents of the _site directory and other cache directories
+# Jekyll / static site
 _site/
 .sass-cache/
-
-# Ignore the directory for local files during development
 local/
 
-# Ignore the Gemfile that is generated
+# Ruby
 Gemfile.lock
-
-# Ignore files created by npm
-node_modules
-package-lock.json
-
-# Ignore the vendor file at root level and bundle for alternative installation
 /vendor/
 .bundle/
 
-# Ignore folders related to IDEs
-.vscode/
+# npm
+node_modules/
+package-lock.json
 
-# Ignore files created by MacOS
-.DS_Store
-
-# Local training artifacts
+# Python
 .venv/
-# training/data/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+
+# ML training (local checkpoints and caches)
 training/out/
+.cache/
+wandb/
+
+# Environment / secrets
+.env
+.env.*
+
+# IDEs
+.vscode/
+.cursor/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini

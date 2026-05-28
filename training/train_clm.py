@@ -24,7 +24,20 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--warmup-ratio", type=float, default=0.03, help="Warmup ratio.")
     p.add_argument("--weight-decay", type=float, default=0.01, help="Weight decay.")
 
-    p.add_argument("--fp16", action="store_true", help="Enable fp16 (usually GPU-only).")
+    p.add_argument(
+        "--device",
+        type=str,
+        default="auto",
+        choices=("auto", "cpu", "cuda"),
+        help="Training device selection. 'auto' uses the default Transformers behavior.",
+    )
+
+    p.add_argument("--fp16", action="store_true", help="Enable fp16 (GPU-only).")
+    p.add_argument(
+        "--auto-fp16",
+        action="store_true",
+        help="Enable fp16 automatically when CUDA is available (otherwise keep fp16 off).",
+    )
     p.add_argument("--bf16", action="store_true", help="Enable bf16 (usually GPU-only).")
     p.add_argument("--num-workers", type=int, default=0, help="Dataloader workers (Windows: 0 is safest).")
     p.add_argument("--no-eval", action="store_true", help="Disable evaluation even if --valid is provided.")
@@ -46,6 +59,39 @@ def main() -> None:
         TrainingArguments,
         set_seed,
     )
+    import inspect
+
+    try:
+        import torch
+    except Exception as e:
+        raise SystemExit(f"Failed to import torch. Did you install requirements-train.txt?\n\n{e}") from e
+
+    cuda_available = bool(torch.cuda.is_available())
+    if args.device == "cuda" and (not cuda_available):
+        raise SystemExit(
+            "Requested --device cuda, but torch.cuda.is_available() is False.\n"
+            "Install a CUDA-enabled PyTorch build and ensure your NVIDIA driver is working.\n"
+            "Tip: run `nvidia-smi` and see training/README.md section 'Enable NVIDIA GPU (CUDA) on Windows'."
+        )
+
+    # Safety: fp16 should only be used on CUDA.
+    if bool(args.fp16) and (not cuda_available):
+        raise SystemExit("--fp16 was set but CUDA is not available. Use --device cuda with a CUDA PyTorch build.")
+
+    effective_fp16 = bool(args.fp16) or (bool(args.auto_fp16) and cuda_available)
+
+    print("=== device info ===")
+    print(f"torch_version: {getattr(torch, '__version__', 'unknown')}")
+    print(f"cuda_runtime: {getattr(torch.version, 'cuda', None)}")
+    print(f"cuda_is_available: {cuda_available}")
+    if cuda_available:
+        try:
+            print(f"cuda_device: {torch.cuda.get_device_name(0)}")
+        except Exception:
+            print("cuda_device: <unknown>")
+    print(f"requested_device: {args.device}")
+    print(f"fp16: {effective_fp16} (requested_fp16={bool(args.fp16)}, auto_fp16={bool(args.auto_fp16)})")
+    print("===============")
 
     set_seed(int(args.seed))
 
@@ -92,6 +138,19 @@ def main() -> None:
 
     collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
+    # Transformers' TrainingArguments has changed device flags across versions.
+    # We support both styles to keep this script stable across installs.
+    device_kwargs: dict[str, object] = {}
+    training_args_params = set(inspect.signature(TrainingArguments.__init__).parameters.keys())
+    if args.device == "cpu":
+        if "no_cuda" in training_args_params:
+            device_kwargs["no_cuda"] = True
+        elif "use_cpu" in training_args_params:
+            device_kwargs["use_cpu"] = True
+        else:
+            # Fallback: Trainer will likely still choose CUDA if available, but we at least warn.
+            print("Warning: this Transformers version has no 'no_cuda'/'use_cpu' TrainingArguments flag; cannot force CPU.")
+
     training_args = TrainingArguments(
         output_dir=str(out_dir),
         do_train=True,
@@ -110,8 +169,9 @@ def main() -> None:
         eval_steps=int(args.save_steps),
         report_to=[],
         dataloader_num_workers=int(args.num_workers),
-        fp16=bool(args.fp16),
+        fp16=effective_fp16,
         bf16=bool(args.bf16),
+        **device_kwargs,
     )
 
     trainer = Trainer(

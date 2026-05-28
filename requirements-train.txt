@@ -1,6 +1,9 @@
 transformers
 datasets
 accelerate
+# NOTE: `pip install torch` from PyPI typically installs a CPU build on Windows.
+# If you have an NVIDIA GPU and want CUDA acceleration, install torch from the
+# official PyTorch CUDA wheel index instead. See `training/README.md`.
 torch
 sentencepiece
 safetensors
