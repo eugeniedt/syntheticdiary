@@ -68,9 +68,36 @@ def _is_special_page(meta: dict) -> bool:
     permalink = str(meta.get("permalink", "")).strip()
     return permalink in ("/", "/404.html")
 
+def _stylesheet_href() -> str:
+    href = SITE_THEMES.get(SITE_THEME, SITE_THEMES["default"])
+    if SITE_THEME not in SITE_THEMES:
+        print(f"Warning: unknown SITE_THEME {SITE_THEME!r}; using default stylesheet.")
+    return href
+
+def _favicon_head_html() -> str:
+    tags: list[str] = []
+    ico = ASSETS_DIR / "favicon.ico"
+    png = ASSETS_DIR / "favicon.png"
+    svg = ASSETS_DIR / "favicon.svg"
+    apple = ASSETS_DIR / "apple-touch-icon.png"
+    if ico.exists():
+        tags.append('<link rel="icon" href="assets/favicon.ico" sizes="any" />')
+    elif png.exists():
+        tags.append('<link rel="icon" href="assets/favicon.png" type="image/png" />')
+    elif svg.exists():
+        tags.append('<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />')
+    if apple.exists():
+        tags.append('<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />')
+    elif png.exists():
+        tags.append('<link rel="apple-touch-icon" href="assets/favicon.png" />')
+    return "\n    ".join(tags)
+
 def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
     full_title = SITE_TITLE if (not title or title == SITE_TITLE) else f"{SITE_TITLE} — {title}"
     canonical_url = f"{SITE_LINK}{canonical_path}"
+    stylesheet = _stylesheet_href()
+    favicon_html = _favicon_head_html()
+    favicon_block = f"\n    {favicon_html}" if favicon_html else ""
     return f"""<!doctype html>
 <html lang="en">
   <head>
@@ -78,9 +105,8 @@ def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{_html_escape_title(full_title)}</title>
     <meta name="description" content="{_html_escape_title(SITE_DESC)}" />
-    <base href="{SITE_LINK.rstrip('/')}/" />
-    <link rel="canonical" href="{canonical_url}" />
-    <link rel="stylesheet" href="assets/style.css" />
+    <link rel="canonical" href="{canonical_url}" />{favicon_block}
+    <link rel="stylesheet" href="{stylesheet}" />
     <link rel="alternate" type="application/rss+xml" title="{_html_escape_title(SITE_TITLE)}" href="feed.xml" />
   </head>
   <body>
@@ -132,6 +158,54 @@ def _generation_suffix_from_slug(slug: str) -> Optional[str]:
         return None
     suffix = m.group(1)
     return suffix if suffix.startswith("t") else None
+
+def _slug_num_to_display(value: str) -> str:
+    """Undo slug encoding: 0-9 -> 0.9, 0-95 -> 0.95."""
+    if "-" in value:
+        whole, frac = value.split("-", 1)
+        return f"{whole}.{frac}"
+    return value
+
+def _generation_params_from_suffix(suffix: str) -> Optional[dict[str, str]]:
+    m = re.match(r"^t(.+?)-k(.+?)-n(\d+)$", suffix)
+    if not m:
+        return None
+    temp, top_p, max_tokens = m.groups()
+    return {
+        "temperature": _slug_num_to_display(temp),
+        "top_p": _slug_num_to_display(top_p),
+        "max_tokens": max_tokens,
+    }
+
+def _friendly_date_short(d: dt.datetime) -> str:
+    return f"{d.strftime('%B')} {d.day}, {d.year}"
+
+def _format_post_meta_html(date_s: str, slug: str) -> str:
+    """Human-readable meta strip for index entries."""
+    iso_attr = _html_escape_title(date_s)
+    date_label = date_s
+    try:
+        d = dt.datetime.fromisoformat(date_s)
+        date_label = _friendly_date_short(d)
+    except Exception:
+        pass
+
+    parts = [
+        '<span class="meta-badge">Posted automatically</span>',
+        f'<time datetime="{iso_attr}">{_html_escape_title(date_label)}</time>',
+    ]
+    gen_suffix = _generation_suffix_from_slug(slug)
+    if gen_suffix:
+        params = _generation_params_from_suffix(gen_suffix)
+        if params:
+            parts.extend([
+                f'<span class="meta-param">temp {_html_escape_title(params["temperature"])}</span>',
+                f'<span class="meta-param">top-p {_html_escape_title(params["top_p"])}</span>',
+                f'<span class="meta-param">{_html_escape_title(params["max_tokens"])} tokens</span>',
+            ])
+
+    inner = '<span class="meta-sep" aria-hidden="true">·</span>'.join(parts)
+    return f'<div class="post-meta">{inner}</div>'
 
 def generate_text(*, temperature: float, max_tokens: int) -> str:
     set_seed(SEED)
@@ -223,7 +297,6 @@ def build_static_pages():
         title = str(meta.get("title") or p.stem)
         date_s = str(meta.get("date") or "")
         slug = str(meta.get("slug") or "")
-        gen_suffix = _generation_suffix_from_slug(slug)
         # On the index page, show a human-friendly date title like "May, 17th, 2026".
         display_title = title
         try:
@@ -236,15 +309,12 @@ def build_static_pages():
             display_title = f"{d.strftime('%B')}, {day}{suffix}, {d.year}"
         except Exception:
             pass
-        meta_line = date_s
-        if gen_suffix:
-            meta_line = f"{date_s} · {gen_suffix}"
         _, body = _parse_front_matter(p)
         content_html = _render_markdown_to_html(body)
         post_feed_html += (
             f"<article class='card post-entry'>"
             f"<h3>{_html_escape_title(display_title)}</h3>"
-            f"<div class='post-meta'>{_html_escape_title(meta_line)}</div>"
+            f"{_format_post_meta_html(date_s, slug)}"
             f"{content_html}"
             f"</article>"
         )
