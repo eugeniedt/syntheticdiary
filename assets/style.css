@@ -138,43 +138,6 @@ main > p {
   font: inherit;
 }
 
-.post-entry h3 {
-  margin: 0 0 6px;
-  font: 700 13pt/20pt var(--serif);
-  text-align: left;
-}
-
-.post-meta {
-  margin-bottom: 0;
-  font: 700 12pt/18pt var(--mono);
-  color: var(--muted);
-}
-
-.meta-badge,
-.meta-param,
-.post-meta time {
-  color: var(--muted);
-  font-weight: 700;
-}
-
-.meta-sep {
-  color: var(--muted);
-  user-select: none;
-}
-
-.post-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.post-list li {
-  padding: 0;
-}
-
 .site-footer {
   margin-top: 48px;
   padding-top: 16px;
