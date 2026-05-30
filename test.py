@@ -14,11 +14,11 @@ inputs = tokenizer(prompt, return_tensors="pt")
 with torch.no_grad():
     output_ids = model.generate(
         **inputs,
-        max_new_tokens=180,
+        max_new_tokens=80,
         do_sample=True,
-        temperature=1.5, #0.1 is pretty good actually on plain gpu
+        temperature=1.5,
         top_p=0.95,
-        repetition_penalty=1.08,
+        repetition_penalty=1.5,
         no_repeat_ngram_size=3,
         pad_token_id=tokenizer.eos_token_id,
         eos_token_id=tokenizer.eos_token_id,
