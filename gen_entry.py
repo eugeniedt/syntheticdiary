@@ -28,6 +28,7 @@ SEED = int(os.getenv("SEED", str(int(time.time()))[-6:]))   # daily-ish variabil
 MIN_CHARS = 400
 MAX_CHARS = 1500
 MIN_DAYS_BETWEEN_POSTS = float(os.getenv("MIN_DAYS_BETWEEN_POSTS", "2"))
+ENTRY_PROMPT = "Today, I"
 
 # --- Prepare model ---
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
@@ -102,23 +103,11 @@ def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
 def ensure_assets():
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
-def prompt_for_today():
-    today = dt.datetime.now(dt.timezone.utc).strftime("%A, %B %d, %Y")
-    # Keep prompt stable but date-specific for variety
-    return (
-        f"Daily diary entry\n"
-        f"Date: {today}\n\n"
-        f"Write a reflective, personal, calm diary entry (first-person), ~6-10 sentences, grounded and specific, no harmful or offensive content. "
-        f"Keep it PG and avoid named real people. End cleanly without trailing punctuation repetition.\n\n"
-        f"Entry:\n"
-    )
-
 def generate_text():
     set_seed(SEED)
-    prompt = prompt_for_today()
-    input_ids = tokenizer(prompt, return_tensors="pt").input_ids
+    inputs = tokenizer(ENTRY_PROMPT, return_tensors="pt")
     output_ids = model.generate(
-        input_ids,
+        **inputs,
         max_new_tokens=MAX_TOKENS,
         do_sample=True,
         temperature=TEMPERATURE,
@@ -128,11 +117,7 @@ def generate_text():
         pad_token_id=tokenizer.eos_token_id,
         eos_token_id=tokenizer.eos_token_id,
     )
-    text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
-    # Extract only the portion after "Entry:" to avoid prompt bleed
-    if "Entry:" in text:
-        text = text.split("Entry:", 1)[1].strip()
-    return text
+    return tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
 def basic_clean(text: str) -> str:
     # Trim runaway repeats and hard-wrap long whitespace
