@@ -59,7 +59,7 @@ a:hover {
   display: flex;
   justify-content: flex-end;
   padding: 24px var(--page-pad) 0;
-  font: 700 12pt/18pt var(--mono);
+  font: 700 12pt/18pt var(--serif);
   color: var(--link);
   pointer-events: auto;
 }
@@ -104,13 +104,13 @@ main > p {
 }
 
 .post-title {
-  margin: 0 0 4px;
+  margin: 0 0 8px;
   font: 700 13pt/20pt var(--serif);
 }
 
 .post-meta-line {
-  margin: 0 0 4px;
-  font: 700 12pt/18pt var(--mono);
+  margin: 0 0 0px;
+  font: 700 8pt/14pt var(--mono);
   color: var(--muted);
 }
 
