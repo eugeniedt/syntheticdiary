@@ -178,27 +178,20 @@ def _generation_params_from_suffix(suffix: str) -> Optional[dict[str, str]]:
         "max_tokens": max_tokens,
     }
 
-def _friendly_date_short(d: dt.datetime) -> str:
-    return f"{d.strftime('%B')} {d.day}, {d.year}"
-
 def _meta_line_parts(date_s: str, slug: str) -> list[str]:
-    parts = ["Posted automatically"]
-    try:
-        d = dt.datetime.fromisoformat(date_s)
-        parts.append(_friendly_date_short(d))
-    except Exception:
-        if date_s:
-            parts.append(date_s)
+    parts: list[str] = []
+
+    if date_s:
+        parts.append(date_s)
 
     gen_suffix = _generation_suffix_from_slug(slug)
-    if gen_suffix:
-        params = _generation_params_from_suffix(gen_suffix)
-        if params:
-            parts.extend([
-                f'temp {params["temperature"]}',
-                f'top-p {params["top_p"]}',
-                f'{params["max_tokens"]} tokens',
-            ])
+    params = _generation_params_from_suffix(gen_suffix) if gen_suffix else None
+    if params:
+        parts.extend([
+            f'temp {params["temperature"]}',
+            f'top-p {params["top_p"]}',
+            f'{params["max_tokens"]} tokens',
+        ])
     return parts
 
 def _format_post_entry_html(display_title: str, date_s: str, slug: str, body: str) -> str:
@@ -214,30 +207,11 @@ def _format_post_entry_html(display_title: str, date_s: str, slug: str, body: st
 
 def _format_post_meta_html(date_s: str, slug: str) -> str:
     """Human-readable meta strip for index entries."""
-    iso_attr = _html_escape_title(date_s)
-    date_label = date_s
-    try:
-        d = dt.datetime.fromisoformat(date_s)
-        date_label = _friendly_date_short(d)
-    except Exception:
-        pass
-
-    parts = [
-        '<span class="meta-badge">Posted automatically</span>',
-        f'<time datetime="{iso_attr}">{_html_escape_title(date_label)}</time>',
-    ]
-    gen_suffix = _generation_suffix_from_slug(slug)
-    if gen_suffix:
-        params = _generation_params_from_suffix(gen_suffix)
-        if params:
-            parts.extend([
-                f'<span class="meta-param">temp {_html_escape_title(params["temperature"])}</span>',
-                f'<span class="meta-param">top-p {_html_escape_title(params["top_p"])}</span>',
-                f'<span class="meta-param">{_html_escape_title(params["max_tokens"])} tokens</span>',
-            ])
-
-    inner = '<span class="meta-sep" aria-hidden="true">·</span>'.join(parts)
-    return f'<div class="post-meta">{inner}</div>'
+    lines = "".join(
+        f'<div class="post-meta-line">{_html_escape_title(line)}</div>'
+        for line in _meta_line_parts(date_s, slug)
+    )
+    return f'<div class="post-meta">{lines}</div>'
 
 def generate_text(*, temperature: float, max_tokens: int) -> str:
     set_seed(SEED)
