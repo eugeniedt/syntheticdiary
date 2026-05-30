@@ -19,6 +19,10 @@ ASSETS_DIR = SITE_DIR / "assets"
 SITE_TITLE = os.getenv("SITE_TITLE", "My Synthetic Diary")
 SITE_LINK = os.getenv("SITE_LINK", "https://eugeniedt.github.io/syntheticdiary")
 SITE_DESC = os.getenv("SITE_DESC", "My Synthetic Diary")
+SITE_THEME = os.getenv("SITE_THEME", "default")
+SITE_THEMES = {
+    "default": "assets/style.css",
+}
 AUTHOR_NAME = os.getenv("AUTHOR_NAME", "Us")
 MODEL_NAME = os.getenv("MODEL_NAME", "eugenieee/synthdiary")
 TEMP_MIN = 0.1
@@ -111,12 +115,9 @@ def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
   </head>
   <body>
     <header class="site-header">
-      <div class="container header-row">
-        <a class="brand" href="./">{_html_escape_title(SITE_TITLE)}</a>
-        <nav class="nav">
-          <a href="feed.xml">RSS</a>
-        </nav>
-      </div>
+      <nav class="nav">
+        <a href="feed.xml">RSS</a>
+      </nav>
     </header>
     <main class="container">
       {body_html}
@@ -179,6 +180,60 @@ def _generation_params_from_suffix(suffix: str) -> Optional[dict[str, str]]:
 
 def _friendly_date_short(d: dt.datetime) -> str:
     return f"{d.strftime('%B')} {d.day}, {d.year}"
+
+def _wrap_text_lines(text: str, width: int = 80) -> list[str]:
+    words = text.split()
+    if not words:
+        return []
+    lines: list[str] = []
+    current: list[str] = []
+    length = 0
+    for word in words:
+        extra = len(word) + (1 if current else 0)
+        if current and length + extra > width:
+            lines.append(" ".join(current))
+            current = [word]
+            length = len(word)
+        else:
+            current.append(word)
+            length += extra
+    if current:
+        lines.append(" ".join(current))
+    return lines
+
+def _meta_line_parts(date_s: str, slug: str) -> list[str]:
+    parts = ["Posted automatically"]
+    try:
+        d = dt.datetime.fromisoformat(date_s)
+        parts.append(_friendly_date_short(d))
+    except Exception:
+        if date_s:
+            parts.append(date_s)
+
+    gen_suffix = _generation_suffix_from_slug(slug)
+    if gen_suffix:
+        params = _generation_params_from_suffix(gen_suffix)
+        if params:
+            parts.extend([
+                f'temp {params["temperature"]}',
+                f'top-p {params["top_p"]}',
+                f'{params["max_tokens"]} tokens',
+            ])
+    return parts
+
+def _format_post_entry_html(display_title: str, date_s: str, slug: str, body: str) -> str:
+    lines_html = [
+        f'<div class="post-line post-line-title">{_html_escape_title(display_title)}</div>',
+    ]
+    for part in _meta_line_parts(date_s, slug):
+        lines_html.append(
+            f'<div class="post-line post-line-meta">{_html_escape_title(part)}</div>'
+        )
+    for line in _wrap_text_lines(body.strip(), 80):
+        lines_html.append(
+            f'<div class="post-line post-line-body">{_html_escape_title(line)}</div>'
+        )
+    return f"<article class='card post-entry'>{''.join(lines_html)}</article>"
 
 def _format_post_meta_html(date_s: str, slug: str) -> str:
     """Human-readable meta strip for index entries."""
@@ -310,14 +365,7 @@ def build_static_pages():
         except Exception:
             pass
         _, body = _parse_front_matter(p)
-        content_html = _render_markdown_to_html(body)
-        post_feed_html += (
-            f"<article class='card post-entry'>"
-            f"<h3>{_html_escape_title(display_title)}</h3>"
-            f"{_format_post_meta_html(date_s, slug)}"
-            f"{content_html}"
-            f"</article>"
-        )
+        post_feed_html += _format_post_entry_html(display_title, date_s, slug, body)
     post_feed_html += "</div>"
 
     if home_md:
