@@ -125,6 +125,14 @@ def _diary_slug(pub_dt: dt.datetime, *, temperature: float, max_tokens: int) -> 
         f"diary-{pub_dt.strftime('%Y-%m-%d')}-t{_fmt_slug_num(temperature)}-k{k}-n{max_tokens}"
     )
 
+def _generation_suffix_from_slug(slug: str) -> Optional[str]:
+    """Return sampling params encoded in newer slugs, e.g. t0-9-k0-95-n220."""
+    m = re.match(r"^diary-\d{4}-\d{2}-\d{2}-(.+)$", slug)
+    if not m:
+        return None
+    suffix = m.group(1)
+    return suffix if suffix.startswith("t") else None
+
 def generate_text(*, temperature: float, max_tokens: int) -> str:
     set_seed(SEED)
     inputs = tokenizer(ENTRY_PROMPT, return_tensors="pt")
@@ -214,6 +222,8 @@ def build_static_pages():
     for p, meta in diary_items[:30]:
         title = str(meta.get("title") or p.stem)
         date_s = str(meta.get("date") or "")
+        slug = str(meta.get("slug") or "")
+        gen_suffix = _generation_suffix_from_slug(slug)
         # On the index page, show a human-friendly date title like "May, 17th, 2026".
         display_title = title
         try:
@@ -226,12 +236,15 @@ def build_static_pages():
             display_title = f"{d.strftime('%B')}, {day}{suffix}, {d.year}"
         except Exception:
             pass
+        meta_line = date_s
+        if gen_suffix:
+            meta_line = f"{date_s} · {gen_suffix}"
         _, body = _parse_front_matter(p)
         content_html = _render_markdown_to_html(body)
         post_feed_html += (
             f"<article class='card post-entry'>"
             f"<h3>{_html_escape_title(display_title)}</h3>"
-            f"<div class='post-meta'>{_html_escape_title(date_s)}</div>"
+            f"<div class='post-meta'>{_html_escape_title(meta_line)}</div>"
             f"{content_html}"
             f"</article>"
         )
@@ -281,8 +294,10 @@ def update_rss():
             continue
         fe = fg.add_entry()
         title = meta.get("title", p.stem)
+        gen_suffix = _generation_suffix_from_slug(str(meta.get("slug") or ""))
+        rss_title = f"{title} · {gen_suffix}" if gen_suffix else title
         link = f"{SITE_LINK}/posts/{p.name}"
-        fe.title(title)
+        fe.title(rss_title)
         fe.link(href=link)
         fe.id(link)
         try:
