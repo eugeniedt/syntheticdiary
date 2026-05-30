@@ -103,6 +103,17 @@ def _page_shell(*, title: str, body_html: str, canonical_path: str) -> str:
 def ensure_assets():
     ASSETS_DIR.mkdir(parents=True, exist_ok=True)
 
+def _fmt_slug_num(value: float | int) -> str:
+    if isinstance(value, int):
+        return str(value)
+    return f"{value:g}".replace(".", "-")
+
+def _diary_slug(pub_dt: dt.datetime) -> str:
+    k = _fmt_slug_num(TOP_P)
+    return slugify(
+        f"diary-{pub_dt.strftime('%Y-%m-%d')}-t{_fmt_slug_num(TEMPERATURE)}-k{k}-n{MAX_TOKENS}"
+    )
+
 def generate_text():
     set_seed(SEED)
     inputs = tokenizer(ENTRY_PROMPT, return_tensors="pt")
@@ -131,9 +142,8 @@ def basic_clean(text: str) -> str:
         raise ValueError("Content filter triggered")
     return text
 
-def save_post(title: str, content: str, pub_dt: dt.datetime):
+def save_post(title: str, content: str, pub_dt: dt.datetime, *, slug: str):
     POSTS_DIR.mkdir(parents=True, exist_ok=True)
-    slug = slugify(title)
     filename = f"{pub_dt.strftime('%Y-%m-%d')}-{slug}.md"
     path = POSTS_DIR / filename
     front_matter = {
@@ -337,7 +347,7 @@ def main():
         if len(text2) > len(text):
             text = text2
 
-    save_post(title, text, now)
+    save_post(title, text, now, slug=_diary_slug(now))
     build_static_pages()
     update_rss()
     print("Generated and updated feed.")
