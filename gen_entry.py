@@ -16,9 +16,9 @@ SITE_DIR = Path(__file__).parent
 POSTS_DIR = SITE_DIR / "posts"
 FEED_FILE = SITE_DIR / "feed.xml"
 ASSETS_DIR = SITE_DIR / "assets"
-SITE_TITLE = os.getenv("SITE_TITLE", "My Synthetic Diary")
+SITE_TITLE = os.getenv("SITE_TITLE", "MY SYNTHETIC DIARY")
 SITE_LINK = os.getenv("SITE_LINK", "https://eugeniedt.github.io/syntheticdiary")
-SITE_DESC = os.getenv("SITE_DESC", "My Synthetic Diary")
+SITE_DESC = os.getenv("SITE_DESC", "MY SYNTHETIC DIARY")
 SITE_THEME = os.getenv("SITE_THEME", "default")
 SITE_THEMES = {
     "default": "assets/style.css",
@@ -60,6 +60,12 @@ def _is_diary_post(meta: dict, path: Path) -> bool:
 def _html_escape_title(s: str) -> str:
     return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
              .replace('"', "&quot;").replace("'", "&#39;"))
+
+def _uppercase_html_heading(html: str, tag: str) -> str:
+    pattern = rf"(<{tag}[^>]*>)(.*?)(</{tag}>)"
+    def repl(m):
+        return m.group(1) + m.group(2).upper() + m.group(3)
+    return re.sub(pattern, repl, html, flags=re.DOTALL | re.IGNORECASE)
 
 def _render_markdown_to_html(markdown_text: str) -> str:
     return md.markdown(
@@ -315,15 +321,16 @@ def build_static_pages():
             display_title = f"{d.strftime('%B')}, {day}{suffix}, {d.year}"
         except Exception:
             pass
+        display_title = display_title.upper()
         _, body = _parse_front_matter(p)
         post_feed_html += _format_post_entry_html(display_title, date_s, slug, body)
     post_feed_html += "</div>"
 
     if home_md:
-        home_html = _render_markdown_to_html(home_body)
-        index_body = f"{home_html}<h2>Latest Entries:</h2>{post_feed_html}"
+        home_html = _uppercase_html_heading(_render_markdown_to_html(home_body), "h1")
+        index_body = f"{home_html}{post_feed_html}"
     else:
-        index_body = f"<h1>{_html_escape_title(SITE_TITLE)}</h1><p>{_html_escape_title(SITE_DESC)}</p><h2>Latest Entries:</h2>{post_feed_html}"
+        index_body = f"<h1>{_html_escape_title(SITE_TITLE)}</h1><p>{_html_escape_title(SITE_DESC)}</p>{post_feed_html}"
 
     (SITE_DIR / "index.html").write_text(
         _page_shell(title=SITE_TITLE, body_html=index_body, canonical_path="/"),
