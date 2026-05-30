@@ -181,26 +181,6 @@ def _generation_params_from_suffix(suffix: str) -> Optional[dict[str, str]]:
 def _friendly_date_short(d: dt.datetime) -> str:
     return f"{d.strftime('%B')} {d.day}, {d.year}"
 
-def _wrap_text_lines(text: str, width: int = 80) -> list[str]:
-    words = text.split()
-    if not words:
-        return []
-    lines: list[str] = []
-    current: list[str] = []
-    length = 0
-    for word in words:
-        extra = len(word) + (1 if current else 0)
-        if current and length + extra > width:
-            lines.append(" ".join(current))
-            current = [word]
-            length = len(word)
-        else:
-            current.append(word)
-            length += extra
-    if current:
-        lines.append(" ".join(current))
-    return lines
-
 def _meta_line_parts(date_s: str, slug: str) -> list[str]:
     parts = ["Posted automatically"]
     try:
@@ -222,18 +202,15 @@ def _meta_line_parts(date_s: str, slug: str) -> list[str]:
     return parts
 
 def _format_post_entry_html(display_title: str, date_s: str, slug: str, body: str) -> str:
-    lines_html = [
-        f'<div class="post-line post-line-title">{_html_escape_title(display_title)}</div>',
+    parts = [
+        f'<div class="post-title">{_html_escape_title(display_title)}</div>',
     ]
     for part in _meta_line_parts(date_s, slug):
-        lines_html.append(
-            f'<div class="post-line post-line-meta">{_html_escape_title(part)}</div>'
+        parts.append(
+            f'<div class="post-meta-line">{_html_escape_title(part)}</div>'
         )
-    for line in _wrap_text_lines(body.strip(), 80):
-        lines_html.append(
-            f'<div class="post-line post-line-body">{_html_escape_title(line)}</div>'
-        )
-    return f"<article class='card post-entry'>{''.join(lines_html)}</article>"
+    parts.append(f'<p class="post-body">{_html_escape_title(body.strip())}</p>')
+    return f"<article class='card post-entry'>{''.join(parts)}</article>"
 
 def _format_post_meta_html(date_s: str, slug: str) -> str:
     """Human-readable meta strip for index entries."""

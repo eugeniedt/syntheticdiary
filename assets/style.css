@@ -8,8 +8,6 @@
   --link-hover: #555555;
   --mono: "Courier New", Courier, monospace;
   --serif: "Crimson Pro", "Times New Roman", Times, serif;
-  --num-col: 2.75em;
-  --line-gap: 0.65em;
   --page-pad: 24px;
 }
 
@@ -22,7 +20,7 @@ body {
   margin: 0 auto;
   width: min(50%, 800px);
   max-width: 800px;
-  padding: 0 var(--page-pad) 48px calc(var(--page-pad) + var(--num-col) + var(--line-gap));
+  padding: 0 var(--page-pad) 48px;
   font: 13pt/20pt var(--serif);
   background: var(--bg);
   color: var(--fg);
@@ -97,10 +95,6 @@ main > p {
   border-radius: 0;
 }
 
-.post-feed {
-  counter-reset: line;
-}
-
 .post-entry {
   margin-bottom: 28px;
 }
@@ -109,33 +103,19 @@ main > p {
   margin-bottom: 0;
 }
 
-.post-line {
-  position: relative;
+.post-title {
   margin: 0 0 4px;
-  counter-increment: line;
-}
-
-.post-line::before {
-  content: counter(line);
-  position: absolute;
-  left: calc(-1 * (var(--num-col) + var(--line-gap)));
-  width: var(--num-col);
-  font: 700 12pt/18pt var(--mono);
-  text-align: right;
-  color: var(--link);
-}
-
-.post-line-title {
   font: 700 13pt/20pt var(--serif);
 }
 
-.post-line-meta {
+.post-meta-line {
+  margin: 0 0 4px;
   font: 700 12pt/18pt var(--mono);
   color: var(--muted);
 }
 
-.post-line-body {
-  font: inherit;
+.post-body {
+  margin: 0 0 4px;
 }
 
 .site-footer {
@@ -169,7 +149,6 @@ pre {
 
 @media (max-width: 720px) {
   :root {
-    --num-col: 2.25em;
     --page-pad: 20px;
   }
 
