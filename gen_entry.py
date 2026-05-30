@@ -21,11 +21,13 @@ SITE_LINK = os.getenv("SITE_LINK", "https://eugeniedt.github.io/syntheticdiary")
 SITE_DESC = os.getenv("SITE_DESC", "My Synthetic Diary")
 AUTHOR_NAME = os.getenv("AUTHOR_NAME", "Us")
 MODEL_NAME = os.getenv("MODEL_NAME", "eugenieee/synthdiary")
-MAX_TOKENS = 220
-TEMPERATURE = 0.9
+TEMP_MIN = 0.1
+TEMP_MAX = 1.7
+TOKENS_MIN = 50
+TOKENS_MAX = 180
 TOP_P = 0.95
 SEED = int(os.getenv("SEED", str(int(time.time()))[-6:]))   # daily-ish variability
-MIN_CHARS = 400
+MIN_CHARS = 100
 MAX_CHARS = 1500
 MIN_DAYS_BETWEEN_POSTS = float(os.getenv("MIN_DAYS_BETWEEN_POSTS", "2"))
 ENTRY_PROMPT = "Today, I"
@@ -108,20 +110,29 @@ def _fmt_slug_num(value: float | int) -> str:
         return str(value)
     return f"{value:g}".replace(".", "-")
 
-def _diary_slug(pub_dt: dt.datetime) -> str:
+def _diary_post_count(posts: list[tuple[Path, dict]]) -> int:
+    return sum(1 for p, meta in posts if _is_diary_post(meta, p))
+
+def next_generation_params(posts: list[tuple[Path, dict]]) -> tuple[float, int]:
+    """Alternate low/high sampling settings per diary entry."""
+    if _diary_post_count(posts) % 2 == 0:
+        return TEMP_MIN, TOKENS_MIN
+    return TEMP_MAX, TOKENS_MAX
+
+def _diary_slug(pub_dt: dt.datetime, *, temperature: float, max_tokens: int) -> str:
     k = _fmt_slug_num(TOP_P)
     return slugify(
-        f"diary-{pub_dt.strftime('%Y-%m-%d')}-t{_fmt_slug_num(TEMPERATURE)}-k{k}-n{MAX_TOKENS}"
+        f"diary-{pub_dt.strftime('%Y-%m-%d')}-t{_fmt_slug_num(temperature)}-k{k}-n{max_tokens}"
     )
 
-def generate_text():
+def generate_text(*, temperature: float, max_tokens: int) -> str:
     set_seed(SEED)
     inputs = tokenizer(ENTRY_PROMPT, return_tensors="pt")
     output_ids = model.generate(
         **inputs,
-        max_new_tokens=MAX_TOKENS,
+        max_new_tokens=max_tokens,
         do_sample=True,
-        temperature=TEMPERATURE,
+        temperature=temperature,
         top_p=TOP_P,
         repetition_penalty=1.08,
         no_repeat_ngram_size=3,
@@ -337,17 +348,23 @@ def main():
             return
 
     title = f"Diary — {now.strftime('%Y-%m-%d')}"
-    text = generate_text()
+    temperature, max_tokens = next_generation_params(posts)
+    text = generate_text(temperature=temperature, max_tokens=max_tokens)
     text = basic_clean(text)
     if len(text) < MIN_CHARS:
         # Regenerate once if too short
         time.sleep(1)
-        text2 = generate_text()
+        text2 = generate_text(temperature=temperature, max_tokens=max_tokens)
         text2 = basic_clean(text2)
         if len(text2) > len(text):
             text = text2
 
-    save_post(title, text, now, slug=_diary_slug(now))
+    save_post(
+        title,
+        text,
+        now,
+        slug=_diary_slug(now, temperature=temperature, max_tokens=max_tokens),
+    )
     build_static_pages()
     update_rss()
     print("Generated and updated feed.")
